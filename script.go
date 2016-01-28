@@ -1,4 +1,4 @@
-package main
+package asometer
 
 import (
 	"fmt"
@@ -8,9 +8,7 @@ import (
 	"io/ioutil"
 )
 
-func main() {
-	title := "GetSpace Free - Delete Duplicate Photo from Device Storage"
-	keywords := "delete, clean, disk, master, manager, cleaner, memory, cache, camera, boost, aid, battery, saver, system, gallery"
+func MeasureTraffic(title string, keywords string) {
 	queries := getQueries(title, keywords)
 	var bestQueries []string
 	for i, query := range queries {
@@ -45,6 +43,11 @@ func main() {
 	for _, query := range bestQueries {
 		fmt.Println(query)	
 	}
+}
+
+func main() {
+	// title := "GetSpace Free - Delete Duplicate Photo from Device Storage"
+	// keywords := "delete, clean, disk, master, manager, cleaner, memory, cache, camera, boost, aid, battery, saver, system, gallery"
 }
 
 type PageRespEntry struct {
