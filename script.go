@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
+	"github.com/mailgun/mailgun-go"
 )
 
 func MeasureTraffic(title string, keywords string) {
@@ -40,8 +41,30 @@ func MeasureTraffic(title string, keywords string) {
 		}
 	}
 	fmt.Println("RESULTS:")
+	report := ""
+	report = report + title + "\n\n"
 	for _, query := range bestQueries {
 		fmt.Println(query)	
+		report = report + query + "\n"
+	}
+	sendEmail(title, report)
+}
+
+func sendEmail(title string, body string) {
+	mg := mailgun.NewMailgun("sandbox8b923124ef234dfdb45b74f1ac03503a.mailgun.org", "key-4a4100c30e521251c772ca9e80fba232", "")
+
+	m := mg.NewMessage(  
+    	"Asometer <postmaster@sandbox8b923124ef234dfdb45b74f1ac03503a.mailgun.org>",
+    	title,
+    	body,
+    	"Goga <gogosapiens@gmail.com>")
+
+	_, _, err := mg.Send(m)
+
+	if err != nil {  
+  		fmt.Println(err)
+	} else {
+		fmt.Println("Mail Sent")
 	}
 }
 
@@ -81,7 +104,7 @@ func getQueries(title string, keywords string) []string {
 	allKeywords := append(strings.Split(title, " "), strings.Split(keywords, " ")...)
 	var anagrams []string
 	anagrams = append(anagrams, getAnagrams(allKeywords, 1, 0)...)
-	// anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
+	anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
 	return anagrams
 }
 
