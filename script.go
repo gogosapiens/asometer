@@ -7,11 +7,24 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"github.com/mailgun/mailgun-go"
+	"sort"
 )
+
+type TrafficQuery struct {
+	Query string
+	Position int
+	TotalAppsCount int
+}
+
+type ByPosition []TrafficQuery
+func (a ByPosition) Len() int { return len(a) }
+func (a ByPosition) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByPosition) Less(i, j int) bool { return a[i].Position < a[j].Position }
 
 func MeasureTraffic(title string, keywords string) {
 	queries := getQueries(title, keywords)
-	var bestQueries []string
+
+	var bestQueries []TrafficQuery
 	for i, query := range queries {
 		words := strings.Split(query, " ")
 		fmt.Println(query, fmt.Sprintf("(%d / %d)", i, len(queries)))
@@ -20,12 +33,12 @@ func MeasureTraffic(title string, keywords string) {
 
 		data, err := readBody(url)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		var pageResp PageResp
 		err = json.Unmarshal(data, &pageResp)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		if len(pageResp.Results) < 10 {
 			continue
@@ -35,17 +48,20 @@ func MeasureTraffic(title string, keywords string) {
 				break
 			}
 			if entry.TrackCensoredName == title {
-				bestQueries = append(bestQueries, fmt.Sprintf("%2v / %2v  %s", i, len(pageResp.Results), query))
+				bestQueries = append(bestQueries, TrafficQuery{query, i + 1, len(pageResp.Results)})
 				break
 			}
 		}
 	}
+	//bestQueries := []TrafficQuery{{"asdsad", 32, 12}, {"Sdas", 0, 12}, {"rjrer", 2332, 9012}}
+	sort.Sort(ByPosition(bestQueries))
 	fmt.Println("RESULTS:")
 	report := ""
 	report = report + title + "\n\n"
 	for _, query := range bestQueries {
-		fmt.Println(query)	
-		report = report + query + "\n"
+		line := fmt.Sprintf("%2v / %2v  %s", query.Position, query.TotalAppsCount, query.Query)
+		fmt.Println(line)
+		report = report + line + "\n"
 	}
 	sendEmail(title, report)
 }
