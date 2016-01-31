@@ -29,18 +29,8 @@ type Progress struct {
 
 func (c *Progress) Set(title string, progress float64) {
     c.Mu.Lock()
-    if c.States == nil {
-    	c.States = make(map[string]float64)
-    }
     c.States[title] = progress
     c.Mu.Unlock()
-}
-
-func (c *Progress) Get(title string) (progress float64) {
-    c.Mu.Lock()
-    progress = c.States[title]
-    c.Mu.Unlock()
-    return
 }
 
 func (c *Progress) GetStates() (states map[string]float64) {
@@ -50,15 +40,11 @@ func (c *Progress) GetStates() (states map[string]float64) {
     return
 }
 
-var progress Progress
-
-func getProgress(title string) float64 {
-	return progress.Get(title)
-}
+var progress = Progress{States: make(map[string]float64)}
 
 func measureTraffic(title string, keywords string, country string) {
 	queries := getQueries(title, keywords)
-	progress.Set(title, 0)
+	progress.Set(title, 0.01)
 
 	var bestQueries []TrafficQuery
 	for i, query := range queries {
@@ -88,10 +74,10 @@ func measureTraffic(title string, keywords string, country string) {
 				break
 			}
 		}
-		progress.Set(title, float64(i) / float64(len(queries)))
+		progress.Set(title, float64(i + 1) / float64(len(queries)))
 	}
 	sort.Sort(ByPosition(bestQueries))
-	fmt.Println("RESULTS:")
+	fmt.Println("RESULTS: ", len(bestQueries))
 	report := ""
 	for _, query := range bestQueries {
 		line := fmt.Sprintf("%2v / %2v  %s", query.Position, query.TotalAppsCount, query.Query)
@@ -113,6 +99,7 @@ func sendEmail(title string, body string) {
 	_, _, err := mg.Send(m)
 
 	if err != nil {  
+		fmt.Println(body)
   		fmt.Println(err)
 	} else {
 		fmt.Println("Mail Sent")
@@ -151,6 +138,7 @@ func getQueries(title string, keywords string) []string {
 	var anagrams []string
 	anagrams = append(anagrams, getAnagrams(allKeywords, 1, 0)...)
 	anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
+	anagrams = append(anagrams, getAnagrams(allKeywords, 3, 0)...)
 	return anagrams
 }
 
