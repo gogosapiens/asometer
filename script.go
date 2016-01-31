@@ -1,4 +1,4 @@
-package asometer
+package main
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"github.com/mailgun/mailgun-go"
 	"sort"
+	"sync"
 )
 
 type TrafficQuery struct {
@@ -21,15 +22,43 @@ func (a ByPosition) Len() int { return len(a) }
 func (a ByPosition) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a ByPosition) Less(i, j int) bool { return a[i].Position < a[j].Position }
 
-func MeasureTraffic(title string, keywords string) {
+type Progress struct {
+    Mu sync.Mutex
+    States map[string]float64
+}
+
+func (c *Progress) Set(title string, progress float64) {
+    c.Mu.Lock()
+    if c.States == nil {
+    	c.States = make(map[string]float64)
+    }
+    c.States[title] = progress
+    c.Mu.Unlock()
+}
+
+func (c *Progress) Get(title string) (progress float64) {
+    c.Mu.Lock()
+    progress = c.States[title]
+    c.Mu.Unlock()
+    return
+}
+
+var progress Progress
+
+func getProgress(title string) float64 {
+	return progress.Get(title)
+}
+
+func measureTraffic(title string, keywords string, country string) {
 	queries := getQueries(title, keywords)
+	progress.Set(title, 0)
 
 	var bestQueries []TrafficQuery
 	for i, query := range queries {
 		words := strings.Split(query, " ")
 		fmt.Println(query, fmt.Sprintf("(%d / %d)", i, len(queries)))
 		term := strings.Join(words, "+")
-		url := fmt.Sprintf("https://itunes.apple.com/search?term=%s&country=us&entity=software", term)
+		url := fmt.Sprintf("https://itunes.apple.com/search?term=%s&country=%s&entity=software", term, country)
 
 		data, err := readBody(url)
 		if err != nil {
@@ -52,12 +81,11 @@ func MeasureTraffic(title string, keywords string) {
 				break
 			}
 		}
+		progress.Set(title, float64(i) / float64(len(queries)))
 	}
-	//bestQueries := []TrafficQuery{{"asdsad", 32, 12}, {"Sdas", 0, 12}, {"rjrer", 2332, 9012}}
 	sort.Sort(ByPosition(bestQueries))
 	fmt.Println("RESULTS:")
 	report := ""
-	report = report + title + "\n\n"
 	for _, query := range bestQueries {
 		line := fmt.Sprintf("%2v / %2v  %s", query.Position, query.TotalAppsCount, query.Query)
 		fmt.Println(line)
@@ -82,11 +110,6 @@ func sendEmail(title string, body string) {
 	} else {
 		fmt.Println("Mail Sent")
 	}
-}
-
-func main() {
-	// title := "GetSpace Free - Delete Duplicate Photo from Device Storage"
-	// keywords := "delete, clean, disk, master, manager, cleaner, memory, cache, camera, boost, aid, battery, saver, system, gallery"
 }
 
 type PageRespEntry struct {
