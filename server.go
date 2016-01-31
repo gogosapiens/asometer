@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"fmt"
+	"encoding/json"
 )
 
 func main() {
@@ -14,6 +15,10 @@ func main() {
 func progressHandler(w http.ResponseWriter, r *http.Request) {
     q := r.URL.Query()
     fmt.Fprintf(w, fmt.Sprintf("%s", getProgress(q.Get("title"))))
+    w.Header().Set("Content-Type", "application/json")
+   
+   	json, _ := json.Marshal(progress.GetStates())
+    w.Write([]byte(json))
     //w.WriteHeader(http.StatusOK)
 }
 

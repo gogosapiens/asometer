@@ -43,6 +43,13 @@ func (c *Progress) Get(title string) (progress float64) {
     return
 }
 
+func (c *Progress) GetStates() (states map[string]float64) {
+    c.Mu.Lock()
+    states = c.States
+    c.Mu.Unlock()
+    return
+}
+
 var progress Progress
 
 func getProgress(title string) float64 {
