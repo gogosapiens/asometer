@@ -78,7 +78,7 @@ func measureTraffic(title string, keywords string, country string, email string)
 	fmt.Println("RESULTS: ", len(bestQueries))
 	report := "Results:\n"
 	for _, query := range bestQueries {
-		line := fmt.Sprintf("%2v / %2v  %s", query.Position, query.TotalAppsCount, query.Query)
+		line := fmt.Sprintf("%2v / %3v  %s", query.Position, query.TotalAppsCount, query.Query)
 		fmt.Println(line)
 		report = report + line + "\n"
 	}
@@ -130,8 +130,8 @@ func getQueries(keywords string) []string {
 	allKeywords := strings.Split(keywords, ",")
 	var anagrams []string
 	anagrams = append(anagrams, getAnagrams(allKeywords, 1, 0)...)
-	// anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
-	// anagrams = append(anagrams, getAnagrams(allKeywords, 3, 0)...)
+	anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
+	anagrams = append(anagrams, getAnagrams(allKeywords, 3, 0)...)
 	return anagrams
 }
 
