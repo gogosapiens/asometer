@@ -42,16 +42,17 @@ func (c *Progress) GetStates() (states map[string]float64) {
 
 var progress = Progress{States: make(map[string]float64)}
 
-func measureTraffic(title string, keywords string, country string) {
-	queries := getQueries(title, keywords)
-	progress.Set(title, 0.01)
+func measureTraffic(title string, keywords string, country string, email string) {
+	queries := getQueries(keywords)
+	fmt.Println(len(queries))
+	progress.Set(title, 0)
 
 	var bestQueries []TrafficQuery
 	for i, query := range queries {
 		words := strings.Split(query, " ")
 		fmt.Println(query, fmt.Sprintf("(%d / %d)", i, len(queries)))
 		term := strings.Join(words, "+")
-		url := fmt.Sprintf("https://itunes.apple.com/search?term=%s&country=%s&entity=software", term, country)
+		url := fmt.Sprintf("https://itunes.apple.com/search?term=%s&country=%s&entity=software&limit=100", term, country)
 
 		data, err := readBody(url)
 		if err != nil {
@@ -66,9 +67,6 @@ func measureTraffic(title string, keywords string, country string) {
 			continue
 		}
 		for i, entry := range pageResp.Results {
-			if i > 30 {
-				break
-			}
 			if entry.TrackCensoredName == title {
 				bestQueries = append(bestQueries, TrafficQuery{query, i + 1, len(pageResp.Results)})
 				break
@@ -78,23 +76,24 @@ func measureTraffic(title string, keywords string, country string) {
 	}
 	sort.Sort(ByPosition(bestQueries))
 	fmt.Println("RESULTS: ", len(bestQueries))
-	report := ""
+	report := "Results:\n"
 	for _, query := range bestQueries {
 		line := fmt.Sprintf("%2v / %2v  %s", query.Position, query.TotalAppsCount, query.Query)
 		fmt.Println(line)
 		report = report + line + "\n"
 	}
-	sendEmail(title, report)
+	progress.Set(title, 1)
+	sendEmail(title, report, email)
 }
 
-func sendEmail(title string, body string) {
+func sendEmail(title string, body string, address string) {
 	mg := mailgun.NewMailgun("sandbox8b923124ef234dfdb45b74f1ac03503a.mailgun.org", "key-4a4100c30e521251c772ca9e80fba232", "")
 
 	m := mg.NewMessage(  
     	"Asometer <postmaster@sandbox8b923124ef234dfdb45b74f1ac03503a.mailgun.org>",
     	title,
     	body,
-    	"Goga <gogosapiens@gmail.com>")
+    	"Goga <" + address + ">")
 
 	_, _, err := mg.Send(m)
 
@@ -127,18 +126,12 @@ func readBody(url string) ([]byte, error) {
 	return body, nil	
 }
 
-func getQueries(title string, keywords string) []string {
-	title = strings.ToLower(title)
-	keywords = strings.ToLower(keywords)
-	for _, str := range []string{".", ",", ":", " -", "(", ")"} {
-		title = strings.Replace(title, str, "", -1)	
-		keywords = strings.Replace(keywords, str, "", -1)	
-	}
-	allKeywords := append(strings.Split(title, " "), strings.Split(keywords, " ")...)
+func getQueries(keywords string) []string {
+	allKeywords := strings.Split(keywords, ",")
 	var anagrams []string
 	anagrams = append(anagrams, getAnagrams(allKeywords, 1, 0)...)
-	anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
-	anagrams = append(anagrams, getAnagrams(allKeywords, 3, 0)...)
+	// anagrams = append(anagrams, getAnagrams(allKeywords, 2, 0)...)
+	// anagrams = append(anagrams, getAnagrams(allKeywords, 3, 0)...)
 	return anagrams
 }
 
